@@ -19,7 +19,8 @@ public class Sceniro1Glue {
 
 	MyWebDriver web = new MyWebDriver();
 	private static final Logger LOGGERERR = LogManager.getLogger();
-	private static final int DEFAULTTIMEOUT = 20;
+	private static final int DEFAULTTIMEOUT = 30;
+	private static final int SHORTWAIT = 2;
 	private final By iframePopup = By.xpath("//iframe[contains(@id,'expand_iframe')]");
 	private final By videoAdPopup = By.xpath("//div[contains(@id,'innity_adslot')]/a[contains(@id,'btn_close')]");
 	private final By btnPopClose = By.id("close-button");
@@ -27,7 +28,7 @@ public class Sceniro1Glue {
 	private final By txtUsername = By.id("j_username");
 	private final By txtPassword = By.id("j_password");
 	private final By btnSignIn = By.xpath("//button[text()='Sign in!']");
-	private final By linkLogout = By.xpath("//a[text()='Logout']");
+	private final By linkLogout = By.xpath("//div[@class='block-user-menu']//a[text()='Logout']");
 	private final By linkTopStory = By.xpath("//div[contains(@class,'main-featured-story stt-top1')]//div[contains(@class,'views-row-first')]/a");
 	private final By topStoryImg = By.xpath("//div[contains(@class,'main-featured-story stt-top1')]//div[@class='content']/div/img");
 	private final By topStoryImgParent = By.xpath("//div[contains(@class,'main-featured-story stt-top1')]//div[@class='content']/..");
@@ -38,6 +39,7 @@ public class Sceniro1Glue {
 	private Boolean topStoryImgExist = false;
 	private Boolean topStoryVideoExist = false;
 	private String strVideoId;
+	private String videoTitle;
 	
 	
 	@Given("^User is on the Login Page$")
@@ -51,6 +53,7 @@ public class Sceniro1Glue {
 		}
 		if(web.checkElementExist(videoAdPopup, DEFAULTTIMEOUT)) {
 			web.click(videoAdPopup);
+			web.sleep(SHORTWAIT);
 		}
 		
 		web.click(linkLogin);
@@ -76,7 +79,7 @@ public class Sceniro1Glue {
 //			web.switchFrame(web.webObject(iframePopup));
 //			web.click(btnPopClose);
 //		}
-		
+		web.sleep(SHORTWAIT);
 		boolean findLogout = web.checkElementExist(linkLogout, DEFAULTTIMEOUT);
 		assertTrue(findLogout);	
 	}
@@ -88,6 +91,7 @@ public class Sceniro1Glue {
 			if(web.findElement(topStoryImgParent).getAttribute("class").contains("video")) {
 				topStoryVideoExist = true;
 				String href = web.findElement(topStoryVideo).getAttribute("href");
+				videoTitle = web.findElement(topStoryVideo).getText();
 				strVideoId = href.substring(href.lastIndexOf("/")+1);
 				LOGGERERR.info("Get Video id is:" + strVideoId);
 			} else {
@@ -131,9 +135,16 @@ public class Sceniro1Glue {
 		}
 		
 		if(topStoryVideoExist) {
-			objectEle = By.xpath("//video[@data-video-id='" + strVideoId + "']");
-			By videoFrame = By.xpath("//iframe[@src='/embed/" + strVideoId + "']");
+			
+			By videoFrame = By.xpath("//iframe[contains(@src,'" + strVideoId + "') or contains(@title,'" + videoTitle + "')]");
 			web.switchFrame(web.findElement(videoFrame));
+			By video = By.xpath("//*[text()='"+videoTitle+"']/../../../..//video");
+			LOGGERERR.info(web.findElement(video).getAttribute("data-video-id"));
+			if(web.findElement(video).getAttribute("data-video-id")!=null){
+				objectEle = By.xpath("//video[@data-video-id='" + strVideoId + "']");
+			} else {
+				objectEle = video;
+			}
 			checkExist = web.checkElementExist(objectEle, DEFAULTTIMEOUT);
 
 			Assert.assertTrue("Video exist in article is:" + checkExist, checkExist);
@@ -142,8 +153,8 @@ public class Sceniro1Glue {
 	    
 	}
 	
-//	@After
-//	public void afterScenario() {
-//	  web.quitDriver();
-//	}
+	@After
+	public void afterScenario() {
+	  web.quitDriver();
+	}
 }

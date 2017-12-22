@@ -1,6 +1,9 @@
 package frame;
 import java.net.URL;
 import java.time.Duration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
@@ -14,6 +17,7 @@ import org.openqa.selenium.support.ui.WebDriverWait;
 
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.AppiumDriver;
+import io.appium.java_client.PerformsTouchActions;
 import io.appium.java_client.TouchAction;
 public class MobileDriver implements IMyDriver{
 
@@ -36,7 +40,7 @@ public class MobileDriver implements IMyDriver{
         {
             capabilities.setCapability("appPackage", appPackage); 
         	capabilities.setCapability("appActivity", appActivity);//.activities.PeopleActivity
-        	capabilities.setCapability("appWaitActivity", appWaitActivity);//com.google.android.gms.ads.AdActivity
+        //	capabilities.setCapability("appWaitActivity", appWaitActivity);//com.google.android.gms.ads.AdActivity
         }
 
         Thread.sleep(1000);
@@ -52,6 +56,12 @@ public class MobileDriver implements IMyDriver{
 
 	public WebDriver getDriver() {
 		return driver;
+	}
+	
+	public void type(By by, int x, int y) {
+		TouchAction tAction= new TouchAction(driver);
+		tAction.tap(driver.findElement(by), x, y);
+		
 	}
 
 	public WebElement findElement(By by) {
@@ -104,7 +114,7 @@ public class MobileDriver implements IMyDriver{
 
 	@Override
 	public void sendKeys(By by, CharSequence... keysToSend) {
-		this.findElementThoughScorll(by, DEFAULTSCROLL);
+		this.findElementThoughScorll(by, DEFAULTSCROLL).sendKeys(keysToSend);;
 		
 	}
 
@@ -132,4 +142,46 @@ public class MobileDriver implements IMyDriver{
         TouchAction action = new TouchAction(driver);
         action.press(scrWidth/2, scrHeight/2).waitAction(Duration.ofSeconds(2)).moveTo(scrWidth/2, scrHeight/3).release().perform();
 	}
+	
+	 public Map<String, Integer> getElementCoordinate(By by)
+	    {
+	    	Map<String, Integer> coordinate = new HashMap<String, Integer>() ;
+	    	WebElement element = findElement(by);
+	    	System.out.println("Ready to Find element coordinate:" + element.getText());
+
+	    	int leftX = element.getLocation().getX();
+	    	int rightX = leftX + element.getSize().getWidth();
+	    	int middleX = (rightX + leftX) / 2;
+	    	int upperY = element.getLocation().getY();
+	    	int lowerY = upperY + element.getSize().getHeight();
+	    	int middleY = (upperY + lowerY) / 2;
+	    	
+	    	coordinate.put("leftX", leftX);
+	    	coordinate.put("rightX", rightX);
+	    	coordinate.put("middleX", middleX);
+	    	coordinate.put("upperY", upperY);
+	    	coordinate.put("lowerY", lowerY);
+	    	coordinate.put("middleY", middleY);
+	    	
+	    	return coordinate;
+	    }
+	 
+	 protected WebElement findViewElementChild(WebElement byFatherOfListView, int index)
+		{
+
+			WebElement findOne = null;
+			List<WebElement> selections = null;
+			int count = index;
+			
+			if (byFatherOfListView != null)
+			{
+				selections = byFatherOfListView.findElements(By.className("android.webkit.WebView"));
+			}
+			else
+			{
+				selections = driver.findElements(By.className("android.webkit.WebView"));
+			}
+			
+			return selections.get(index);
+		}
 }

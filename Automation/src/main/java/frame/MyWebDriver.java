@@ -49,7 +49,7 @@ public class MyWebDriver implements IMyDriver{
 	
 	public void sendKeys(By by, CharSequence... keysToSend) {
 		driver.findElement(by).sendKeys(keysToSend);
-		LOGGERERR.info("SenkKeys to:" + by.toString() +", value is:" + keysToSend.toString());
+		LOGGERERR.info("SenkKeys to:" + by.toString() +", value is:" + String.valueOf(keysToSend));
 	}
 	
 	public boolean checkElementExist(By by, int timeout) {
@@ -82,5 +82,13 @@ public class MyWebDriver implements IMyDriver{
 	
 	public void quitDriver() {
 		driver.quit();
+	}
+	
+	public void sleep(int timeout) {
+		try {
+			Thread.sleep(timeout *1000);
+		} catch (InterruptedException e) {
+			LOGGERERR.info("sleep was interrupted");
+		}
 	}
 }
