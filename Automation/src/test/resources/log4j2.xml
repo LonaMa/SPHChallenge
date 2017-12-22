@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+	    
+	<properties>  
+        <property name="LOG_HOME">logs</property>  
+        <property name="FILE_NAME">${date:yyyy-MM-dd HHmmss}test_log</property>  
+        <property name="pattern_console">%d{yyyy-MM-dd HH:mm:ss.SSS}  %level  [%thread]  %msg%n</property>
+        <property name="pattern_logfile">%d{yyyy-MM-dd HH:mm:ss.SSS}  %level  [%thread]  %msg%n</property>
+        <property name="pattern_console_old">%d{yyyy-MM-dd HH:mm:ss.SSS}  %level  [%thread]  [%c] - %msg%n</property>
+    </properties>  
+    
+	<Appenders>
+		<Console name="Console" target="SYSTEM_OUT">
+			<PatternLayout pattern="${pattern_console}"/>
+	    </Console>
+	    
+	    
+	    <RollingRandomAccessFile name="running-log"  
+            fileName="${LOG_HOME}/${FILE_NAME}.log" 
+            filePattern="${LOG_HOME}/$${date:yyyy-MM}/${FILE_NAME}-%d{yyyy-MM-dd}-%i.log.gz">  
+            <PatternLayout  
+                pattern="${pattern_logfile}" />  
+            <Policies>  
+                <!-- Every day new 1 log file -->  
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>  
+                <!-- if size upto 2 MB new 1 log file -->  
+                <SizeBasedTriggeringPolicy size="2 MB" />  
+            </Policies>  
+            <!-- Max file number -->  
+            <DefaultRolloverStrategy max="2" />  
+        </RollingRandomAccessFile>
+
+	    <RollingFile name="all-log"  
+            fileName="${LOG_HOME}/all_log.log" immediateFlush="false" append="true"
+            filePattern="${LOG_HOME}/$${date:yyyy-MM}/${FILE_NAME}-%d{yyyy-MM-dd}-%i.log.gz">  
+            <PatternLayout  
+                pattern="${pattern_logfile}" />  
+            <Policies>  
+                <TimeBasedTriggeringPolicy interval="1" modulate="true"/>  
+                <SizeBasedTriggeringPolicy size="2 MB" />  
+            </Policies>  
+            <DefaultRolloverStrategy max="5" />  
+        </RollingFile>
+ 
+	</Appenders>    
+	
+	
+	<loggers>
+		<root level="info"> <!-- We log everything -->
+			<appender-ref ref="Console"/> <!-- To console -->
+			<appender-ref ref="running-log"/>
+			<appender-ref ref="all-log"/>
+		</root>
+	</loggers>
+</Configuration>
