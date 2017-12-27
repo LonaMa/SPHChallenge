@@ -10,7 +10,7 @@
 
 	<properties>
 		<log4j2.version>2.5</log4j2.version>
-		<suiteXmlFile.fileName>Namibia.xml</suiteXmlFile.fileName>
+		<suiteXmlFile.fileName>xxx.xml</suiteXmlFile.fileName>
 	</properties>
 	<developers>
 		<developer>

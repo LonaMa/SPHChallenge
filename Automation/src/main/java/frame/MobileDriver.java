@@ -1,4 +1,5 @@
 package frame;
+import java.io.IOException;
 import java.net.URL;
 import java.time.Duration;
 import java.util.HashMap;
@@ -6,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecuteResultHandler;
+import org.apache.commons.exec.DefaultExecutor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.By;
@@ -13,6 +17,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.FluentWait;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
 import io.appium.java_client.android.AndroidDriver;
@@ -23,11 +28,28 @@ public class MobileDriver implements IMyDriver{
 
 	private static final Logger LOGGERERR = LogManager.getLogger();
 	private AndroidDriver<WebElement> driver;
+	//private final static String Appium_Home = "C:\\Program Files (x86)\\Appium";
+	private final static String Appium_Home = "C:\\Users\\nanma\\AppData\\Local\\Programs\\appium-desktop";
+	private final static String Appium_log_level = "debug";//info, debug, warn, error
+	
 	
 	private final int DEFAULTSCROLL = 10;
+	int retry = 0;
 
 	public void init(String deviceName, String platform, String platformVersion, String appPackage, String appActivity, String appWaitActivity) throws Exception {
-        DesiredCapabilities capabilities = new DesiredCapabilities();
+		//start appium serive
+		
+		////work around for 4.1.2//////
+	//	String rmUnlockCmd = "C:/Users/nanma/AppData/Local/Android/sdk/platform-tools/adb.exe -s ce12160c19e8a42905 uninstall io.appium.unlock";
+	//	Runtime.getRuntime().exec(rmUnlockCmd);
+	//	String rmSettingCmd = "C:/Users/nanma/AppData/Local/Android/sdk/platform-tools/adb.exe -s ce12160c19e8a42905 uninstall io.appium.settings";
+	//	Runtime.getRuntime().exec(rmSettingCmd);
+		
+		////////////////////
+		
+	//	run_Appium(Appium_Home, "127.0.0.1", "4723", "--no-reset", Appium_log_level);
+				
+		DesiredCapabilities capabilities = new DesiredCapabilities();
 		capabilities.setCapability("deviceName", deviceName);
         capabilities.setCapability("platformName", platform);
         capabilities.setCapability("platformVersion", platformVersion);
@@ -43,7 +65,7 @@ public class MobileDriver implements IMyDriver{
         //	capabilities.setCapability("appWaitActivity", appWaitActivity);//com.google.android.gms.ads.AdActivity
         }
 
-        Thread.sleep(1000);
+        this.sleep(1);
         LOGGERERR.info("Start Connection ..." + "\n");
         driver = new AndroidDriver<>(new URL("http://127.0.0.1:4723/wd/hub"), capabilities);
 
@@ -54,14 +76,40 @@ public class MobileDriver implements IMyDriver{
 
 
 
-	public WebDriver getDriver() {
+	public AndroidDriver<WebElement> getDriver() {
 		return driver;
 	}
 	
 	public void type(By by, int x, int y) {
 		TouchAction tAction= new TouchAction(driver);
 		tAction.tap(driver.findElement(by), x, y);
+		LOGGERERR.info("Type element:" + by.toString() + ", x:" + x + ", y:" + y);	
+	}
+	
+	public void type(int x, int y) {
+		TouchAction tAction= new TouchAction(driver);
+		tAction.tap(x, y);
+		LOGGERERR.info("Type on x:" + x + ", y:" + y);
+	}
+	
+	public void type(By by) {
+		WebElement ele = null;
 		
+		TouchAction tAction= new TouchAction(driver);
+		if(checkElementExist(by, 20)){
+			ele = driver.findElement(by);
+		} else {
+			if(retry <= 3){
+				type(by);
+				retry ++;
+				LOGGERERR.warn("Retry to find the element:" + by.toString());
+			}
+		}
+		int x = getElementCoordinate(ele).get("middleX");
+		int y = getElementCoordinate(ele).get("middleY");
+		tAction.tap(x, y);
+		LOGGERERR.info("Type on element:"+ by.toString() +" x:" + x + ", y:" + y);
+		this.sleep(3);
 	}
 
 	public WebElement findElement(By by) {
@@ -104,11 +152,25 @@ public class MobileDriver implements IMyDriver{
 	}
 
 	public void click(By by) {
-		this.click(by, DEFAULTSCROLL);
+		WebElement ele = null;
+		if(checkElementExist(by, 20)){
+			ele = driver.findElement(by);
+		} else {
+			if(retry <= 3){
+				type(by);
+				retry ++;
+				LOGGERERR.warn("Retry to find the element:" + by.toString());
+			}
+		}
+		ele.click();
 	}
 	
 	public void click(By by, int scrollTimes) {
 		this.findElementThoughScorll(by, scrollTimes).click();
+	}
+	
+	public void click(WebElement element) {
+		element.click();
 	}
 
 
@@ -117,18 +179,35 @@ public class MobileDriver implements IMyDriver{
 		this.findElementThoughScorll(by, DEFAULTSCROLL).sendKeys(keysToSend);;
 		
 	}
-
-
-	@Override
-	public boolean checkElementExist(By by, int timeout) {
-		return checkElementExist(by, 1, timeout);
+	
+	public void sendKeys(WebElement element, CharSequence... keysToSend) {
+		element.sendKeys(keysToSend);;
+		
 	}
 	
-	public boolean checkElementExist(By by, int scrollTime, int timeout) {
+	public void hideKeyboard()
+	{
+		driver.hideKeyboard();
+	}
+
+
+	public boolean checkElementExistByScroll(By by, int scrollTime, int timeout) {
 		if(findElementThoughScorll(by, scrollTime, timeout) == null)
 			return false;
 		else
 			return true;
+	}
+	
+	public boolean checkElementExist(By by, int timeout) {
+		FluentWait<WebDriver> wait = new WebDriverWait(driver, timeout).pollingEvery(500, TimeUnit.MILLISECONDS);
+        try {
+        	WebElement ele = (WebElement) wait.until(ExpectedConditions.presenceOfElementLocated(by));
+        	LOGGERERR.info("Find the element exist:" + by.toString());
+        } catch(Exception e) {
+        	LOGGERERR.warn("Cannot find the element:" + by.toString());
+        	return false;
+        }
+        return true;
 	}
 
 	public void quitDriver() {
@@ -140,14 +219,18 @@ public class MobileDriver implements IMyDriver{
 		int scrHeight = driver.manage().window().getSize().getHeight(); //To get the mobile screen height
 		int scrWidth = driver.manage().window().getSize().getWidth();
         TouchAction action = new TouchAction(driver);
-        action.press(scrWidth/2, scrHeight/2).waitAction(Duration.ofSeconds(2)).moveTo(scrWidth/2, scrHeight/3).release().perform();
+        action.press(scrWidth/2, scrHeight/2).waitAction(Duration.ofSeconds(2)).moveTo(scrWidth/2, scrHeight/4).release().perform();
 	}
 	
 	 public Map<String, Integer> getElementCoordinate(By by)
 	    {
+		 LOGGERERR.info("Ready to Find element coordinate:" + by.toString());
+		  return getElementCoordinate(driver.findElement(by));
+	    }
+	 
+	 public Map<String, Integer> getElementCoordinate(WebElement element)
+	    {
 	    	Map<String, Integer> coordinate = new HashMap<String, Integer>() ;
-	    	WebElement element = findElement(by);
-	    	System.out.println("Ready to Find element coordinate:" + element.getText());
 
 	    	int leftX = element.getLocation().getX();
 	    	int rightX = leftX + element.getSize().getWidth();
@@ -184,4 +267,14 @@ public class MobileDriver implements IMyDriver{
 			
 			return selections.get(index);
 		}
+	 
+	 
+		public void sleep(int timeout) {
+			try {
+				Thread.sleep(timeout *1000);
+			} catch (InterruptedException e) {
+				LOGGERERR.info("sleep was interrupted");
+			}
+		}
 }
+

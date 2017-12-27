@@ -149,8 +149,7 @@ public class Sceniro1Glue {
 
 			Assert.assertTrue("Video exist in article is:" + checkExist, checkExist);
 		}
-	    
-	    
+	        
 	}
 	
 	@After
